@@ -11,14 +11,24 @@ export function generateStaticParams() {
   return areas.map((a) => ({ city: a.slug }));
 }
 
-export function generateMetadata({ params }: { params: { city: string } }): Metadata {
-  const area = getAreaBySlug(params.city);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ city: string }>;
+}): Promise<Metadata> {
+  const { city } = await params;
+  const area = getAreaBySlug(city);
   if (!area) return {};
   return { title: area.seoTitle, description: area.seoDesc };
 }
 
-export default function AreaPage({ params }: { params: { city: string } }) {
-  const area = getAreaBySlug(params.city);
+export default async function AreaPage({
+  params,
+}: {
+  params: Promise<{ city: string }>;
+}) {
+  const { city } = await params;
+  const area = getAreaBySlug(city);
   if (!area) notFound();
 
   return (
