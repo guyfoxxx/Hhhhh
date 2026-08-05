@@ -83,4 +83,3 @@ prisma/seed.ts       اسکریپت بارگذاری داده اولیه
 - `DATABASE_URL` به یک PostgreSQL واقعی (مثلاً Neon, Supabase, یا سرور خودتان) وصل است.
 - `NEXTAUTH_SECRET` با `openssl rand -base64 32` ساخته و ست شده.
 - `NEXT_PUBLIC_SITE_URL` روی `https://rahgosha.top` تنظیم است (برای متادیتا و sitemap).
-# Rahgosha-
