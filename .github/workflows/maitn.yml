@@ -29,12 +29,15 @@ jobs:
       # پنل ادمین و API routeها به دیتابیس/Session وابسته‌اند و
       # روی خروجی استاتیک (cPanel بدون Node.js) اصلاً کار نمی‌کنند.
       # برای همین موقتاً از مسیر بیلد کنارشان می‌گذاریم تا export خطا ندهد.
-      - name: Temporarily remove admin & api routes
+      - name: Remove admin & api routes (host has no Node.js)
         run: |
-          mkdir -p /tmp/excluded
-          [ -d "src/app/admin" ] && mv src/app/admin /tmp/excluded/admin
-          [ -d "src/app/api" ] && mv src/app/api /tmp/excluded/api
-          echo "moved admin/api out of build"
+          # این پوشه‌ها به دیتابیس/NextAuth وابسته‌اند و باید کاملاً حذف شوند،
+          # نه فقط rename، چون Next.js بر اساس فایل route.ts/page.tsx تشخیص
+          # می‌دهد نه اسم پوشه — یک پوشه‌ی rename‌شده مثل api-backup هم اگر
+          # داخلش route.ts باشد باز به‌عنوان route ساخته و باعث خطا می‌شود.
+          rm -rf src/app/api src/app/api-backup src/app/admin src/app/admin-backup
+          echo "remaining app dir:"
+          find src/app -maxdepth 1
 
       # next.config.ts اصلی روی output:"standalone" است؛ برای export موقت
       # آن را بازنویسی می‌کنیم (فایل اصلی در ریپو دست‌نخورده می‌ماند چون
@@ -84,4 +87,3 @@ jobs:
           name: rahgosha-static
           path: rahgosha-static.zip
           if-no-files-found: error
-          
