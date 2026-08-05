@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -25,10 +25,21 @@ jobs:
       - name: Build Next.js
         run: npm run build
 
+      - name: Check output
+        run: |
+          ls -la
+          ls -la out || true
+          ls -la .next || true
+
       - name: Create ZIP
         run: |
-          cd out
-          zip -r ../rahgosha-static.zip .
+          if [ -d "out" ]; then
+            cd out
+            zip -r ../rahgosha-static.zip .
+          else
+            echo "out folder not found"
+            exit 1
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
