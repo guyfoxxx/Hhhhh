@@ -84,3 +84,4 @@ prisma/seed.ts       اسکریپت بارگذاری داده اولیه
 - `NEXTAUTH_SECRET` با `openssl rand -base64 32` ساخته و ست شده.
 - `NEXT_PUBLIC_SITE_URL` روی `https://rahgosha.top` تنظیم است (برای متادیتا و sitemap).
 # Hh
+# Hh
