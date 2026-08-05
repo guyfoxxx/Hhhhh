@@ -1,4 +1,4 @@
-name: Build Static Rahgosha
+name: Build Static Rahgosha (public site)
 
 on:
   push:
@@ -17,32 +17,67 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
+          cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build Next.js
+      # پنل ادمین و API routeها به دیتابیس/Session وابسته‌اند و
+      # روی خروجی استاتیک (cPanel بدون Node.js) اصلاً کار نمی‌کنند.
+      # برای همین موقتاً از مسیر بیلد کنارشان می‌گذاریم تا export خطا ندهد.
+      - name: Temporarily remove admin & api routes
+        run: |
+          mkdir -p /tmp/excluded
+          [ -d "src/app/admin" ] && mv src/app/admin /tmp/excluded/admin
+          [ -d "src/app/api" ] && mv src/app/api /tmp/excluded/api
+          echo "moved admin/api out of build"
+
+      # next.config.ts اصلی روی output:"standalone" است؛ برای export موقت
+      # آن را بازنویسی می‌کنیم (فایل اصلی در ریپو دست‌نخورده می‌ماند چون
+      # این تغییرات فقط روی runner موقت اعمال می‌شود).
+      - name: Write temporary export config
+        run: |
+          cat > next.config.ts << 'EOF'
+          import type { NextConfig } from "next";
+
+          const nextConfig: NextConfig = {
+            output: "export",
+            trailingSlash: true,
+            images: {
+              unoptimized: true,
+            },
+          };
+
+          export default nextConfig;
+          EOF
+
+      - name: Build Next.js (static export)
         run: npm run build
 
-      - name: Check output
+      - name: Verify output
         run: |
-          ls -la
-          ls -la out || true
-          ls -la .next || true
+          if [ ! -d "out" ]; then
+            echo "::error::پوشه out ساخته نشد — بیلد export موفق نبود."
+            echo "--- محتویات ریشه پروژه برای دیباگ ---"
+            ls -la
+            exit 1
+          fi
+          echo "تعداد فایل‌های ساخته‌شده:"
+          find out -type f | wc -l
+          ls -la out
 
       - name: Create ZIP
         run: |
-          if [ -d "out" ]; then
-            cd out
-            zip -r ../rahgosha-static.zip .
-          else
-            echo "out folder not found"
-            exit 1
-          fi
+          cd out
+          zip -r ../rahgosha-static.zip .
+          cd ..
+          echo "حجم فایل زیپ:"
+          du -h rahgosha-static.zip
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: rahgosha-static
           path: rahgosha-static.zip
+          if-no-files-found: error
