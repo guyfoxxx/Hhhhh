@@ -1,0 +1,87 @@
+name: Build Static Rahgosha (public site)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          # cache: "npm" حذف شد چون به package-lock.json نیاز دارد و
+          # این ریپو فعلاً لاک‌فایل ندارد.
+
+      - name: Install dependencies
+        # npm ci هم به لاک‌فایل نیاز دارد؛ تا وقتی package-lock.json
+        # به ریپو اضافه نشده از npm install استفاده می‌کنیم.
+        run: npm install
+
+      # پنل ادمین و API routeها به دیتابیس/Session وابسته‌اند و
+      # روی خروجی استاتیک (cPanel بدون Node.js) اصلاً کار نمی‌کنند.
+      # برای همین موقتاً از مسیر بیلد کنارشان می‌گذاریم تا export خطا ندهد.
+      - name: Temporarily remove admin & api routes
+        run: |
+          mkdir -p /tmp/excluded
+          [ -d "src/app/admin" ] && mv src/app/admin /tmp/excluded/admin
+          [ -d "src/app/api" ] && mv src/app/api /tmp/excluded/api
+          echo "moved admin/api out of build"
+
+      # next.config.ts اصلی روی output:"standalone" است؛ برای export موقت
+      # آن را بازنویسی می‌کنیم (فایل اصلی در ریپو دست‌نخورده می‌ماند چون
+      # این تغییرات فقط روی runner موقت اعمال می‌شود).
+      - name: Write temporary export config
+        run: |
+          cat > next.config.ts << 'EOF'
+          import type { NextConfig } from "next";
+
+          const nextConfig: NextConfig = {
+            output: "export",
+            trailingSlash: true,
+            images: {
+              unoptimized: true,
+            },
+          };
+
+          export default nextConfig;
+          EOF
+
+      - name: Build Next.js (static export)
+        run: npm run build
+
+      - name: Verify output
+        run: |
+          if [ ! -d "out" ]; then
+            echo "::error::پوشه out ساخته نشد — بیلد export موفق نبود."
+            echo "--- محتویات ریشه پروژه برای دیباگ ---"
+            ls -la
+            exit 1
+          fi
+          echo "تعداد فایل‌های ساخته‌شده:"
+          find out -type f | wc -l
+          ls -la out
+
+      - name: Create ZIP
+        run: |
+          cd out
+          zip -r ../rahgosha-static.zip .
+          cd ..
+          echo "حجم فایل زیپ:"
+          du -h rahgosha-static.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rahgosha-static
+          path: rahgosha-static.zip
+          if-no-files-found: error
+          
