@@ -8,11 +8,12 @@ export const metadata: Metadata = {
   description: "ثبت درخواست خدمات لوله بازکنی، تخلیه چاه و خدمات اضطراری لوله‌کشی به‌صورت آنلاین.",
 };
 
-export default function EmergencyPage({
+export default async function EmergencyPage({
   searchParams,
 }: {
-  searchParams: { service?: string };
+  searchParams: Promise<{ service?: string }>;
 }) {
+  const { service } = await searchParams;
   const emergency = process.env.NEXT_PUBLIC_PHONE_EMERGENCY ?? "09120000000";
 
   return (
@@ -56,7 +57,7 @@ export default function EmergencyPage({
         </div>
 
         <div className="lg:col-span-3 rounded-xl2 border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-          <RequestForm defaultServiceSlug={searchParams.service} />
+          <RequestForm defaultServiceSlug={service} />
         </div>
       </div>
     </Section>
